@@ -13,13 +13,22 @@ contract DaoTaxer is ReentrancyGuard {
      *
      */
 
-    /* [86400,200000000000000000,0,1,0x5B38Da6a701c568545dCfcB03FcB875f56beddC4,0x5B38Da6a701c568545dCfcB03FcB875f56beddC4,0] */
+    /* [3600,200000000000000000,1,0xFD23c55fc75e1eaAdBB5493639C84b54B331A396,0xFD23c55fc75e1eaAdBB5493639C84b54B331A396,0] */
 
     // Owner address : 0xFD23c55fc75e1eaAdBB5493639C84b54B331A396
     // Contract on callibraion : 0x5f3E5Ec71423380e2E652dafA98E5654a969d2BE
 
     /**
-     * V.0 : Dao registration, user registration if dao register is open, user pay, get user availability, get user expiration time
+     * V.0.1
+     * - ragisterDao
+     * - makePayment
+     * - getUser
+     * - changeRegistration
+     * - changePrice
+     * - changePeriod
+     * - applyDiscount
+     * - getUserExpiration
+     * - withdrawDaoBalance
      */
     enum PaymentType {
         Token,
@@ -36,7 +45,6 @@ contract DaoTaxer is ReentrancyGuard {
     struct DaoDetails {
         uint256 period;
         uint256 price;
-        uint256 discount;
         bool isBalanceLocked;
         PaymentType paymentType;
         address payable paymentContract;
@@ -48,19 +56,22 @@ contract DaoTaxer is ReentrancyGuard {
     mapping(address => DaoDetails) public daoDetails;
     // Used for tracking Dao's balances (if active)
     mapping(address => uint256) public daoBalances;
+    // Used for tracking user discounts
+    mapping(address => mapping(address => uint256)) public userDiscounts;
     // Used for tracking users payments
     // Dao registration address  => user address => last payment
     mapping(address => mapping(address => uint256)) public lastPayment;
 
     /**
-     * Functions :
-     * Register DAO
-     * Update DAO
-     * Make Payment
-     * Get Expiration Time
-     * Get User Availability
+     * @notice Registers a new DAO with the given details.
+     *
+     * @dev This function can only be called once per DAO; subsequent calls will revert.
+     * Ensures that the vault address matches the sender address to maintain secure registrations.
+     *
+     * @param registrationDetails The details of the DAO to register, including the vault address which should match the sender's address.
+     *
+     * This function does not return a value; it reverts if the DAO cannot be registered.
      */
-
     function registerDao(
         DaoDetails memory registrationDetails
     ) public nonReentrant {
@@ -75,20 +86,6 @@ contract DaoTaxer is ReentrancyGuard {
         );
         // Register Dao
         daoDetails[msg.sender] = registrationDetails;
-    }
-
-    function sampleDaoDetails() public pure returns (DaoDetails memory x) {
-        x = DaoDetails(
-            1 days,
-            0.2 ether,
-            0,
-            false,
-            PaymentType.Ether,
-            payable(address(0)),
-            payable(address(0)),
-            RegistrationStatus.Open
-        );
-        return x;
     }
 
     function makePayment(address selectedDao) public payable nonReentrant {
@@ -106,6 +103,20 @@ contract DaoTaxer is ReentrancyGuard {
             "Dao payment type not supported"
         );
 
+        // Check if user has discount
+        if (userDiscounts[selectedDao][msg.sender] > 0) {
+            require(
+                msg.value >=
+                    daoDetails[selectedDao].price -
+                        userDiscounts[selectedDao][msg.sender],
+                "Insufficient payment"
+            );
+        } else {
+            require(
+                msg.value >= daoDetails[selectedDao].price,
+                "Insufficient payment"
+            );
+        }
         require(
             msg.value >= daoDetails[selectedDao].price,
             "Insufficient payment"
@@ -114,6 +125,16 @@ contract DaoTaxer is ReentrancyGuard {
         daoBalances[selectedDao] += msg.value;
     }
 
+    /**
+     * @notice Retrieves the user status from a specific DAO.
+     *
+     * @dev The function considers a user as active if the sum of the last payment time and the DAO period is greater than the current block timestamp. It returns 1 for active users and 0 for inactive users.
+     *
+     * @param user The address of the user whose status is to be retrieved.
+     * @param dao The address of the DAO from which to retrieve the user's status.
+     *
+     * @return uint256 The user status: 1 for active users and 0 for inactive users.
+     */
     function getUser(address user, address dao) public view returns (uint256) {
         return
             lastPayment[dao][user] + daoDetails[dao].period < block.timestamp
@@ -121,7 +142,115 @@ contract DaoTaxer is ReentrancyGuard {
                 : 1;
     }
 
-    function getBalance() public view returns (uint256) {
-        return address(this).balance;
+    /**
+     * @notice Updates the registration status of the caller's DAO.
+     *
+     * @dev The function can only be called by a registered DAO; otherwise, it reverts with a "Dao not registered" error message. It uses the `nonReentrant` modifier to prevent reentrancy attacks.
+     *
+     * @param status The new registration status to be set for the DAO.
+     *
+     * This function doesn't return a value; it updates the state of a DAO registration status.
+     */
+    function changeRegistration(RegistrationStatus status) public nonReentrant {
+        require(
+            daoDetails[msg.sender].vault != address(0),
+            "Dao not registered"
+        );
+
+        daoDetails[msg.sender].registrationStatus = status;
+    }
+
+    /**
+     * @notice Updates the price parameter of the caller's DAO.
+     *
+     * @dev Can only be called by registered DAOs; it will revert with a "DAO not registered" error message if called by an unregistered DAO. It uses the `nonReentrant` modifier to prevent reentrancy attacks.
+     *
+     * @param newPrice The new price value to be set for the DAO.
+     */
+    function changePrice(uint256 newPrice) public nonReentrant {
+        require(
+            daoDetails[msg.sender].vault != address(0),
+            "Dao not registered"
+        );
+
+        daoDetails[msg.sender].price = newPrice;
+    }
+
+    /**
+     * @notice Updates the period parameter of the caller's DAO.
+     *
+     * @dev Can only be called by registered DAOs; it will revert with a "DAO not registered" error message if called by an unregistered DAO. It uses the `nonReentrant` modifier to prevent reentrancy attacks.
+     *
+     * @param newPeriod The new period value to be set for the DAO.
+     */
+    function changePeriod(uint256 newPeriod) public nonReentrant {
+        require(
+            daoDetails[msg.sender].vault != address(0),
+            "Dao not registered"
+        );
+
+        daoDetails[msg.sender].period = newPeriod;
+    }
+
+    /**
+     * @notice Sets a new discount value for a specified contributor in the caller's DAO.
+     *
+     * @dev Can only be called by registered DAOs; it will revert with a "DAO not registered" error message if the DAO is not registered. Moreover, it ensures the discount does not exceed the current DAO price, reverting with a "Can't apply discount more than price" error if it does. Utilizes the `nonReentrant` modifier to prevent reentrancy attacks.
+     *
+     * @param contributer The address of the contributor for whom the discount is being set.
+     * @param newDiscount The new discount value to be applied to the contributor; it should be less than or equal to the DAO's current price.
+     */
+    function applyDiscount(
+        address contributer,
+        uint256 newDiscount
+    ) public nonReentrant {
+        require(
+            daoDetails[msg.sender].vault != address(0),
+            "Dao not registered"
+        );
+        require(
+            daoDetails[msg.sender].price >= newDiscount,
+            "Can't apply discount more then price"
+        );
+        userDiscounts[msg.sender][contributer] = newDiscount;
+    }
+
+    /**
+     * @notice Retrieves the expiration timestamp for a specific user in a given DAO.
+     *
+     * @dev Calculates the expiration timestamp by adding the DAO's period to the user's last payment timestamp.
+     *
+     * @param user The address of the user whose expiration timestamp is to be retrieved.
+     * @param dao The address of the DAO from which to retrieve the expiration timestamp.
+     *
+     * @return uint256 The expiration timestamp for the user in the specified DAO.
+     */
+    function getUserExpiration(
+        address user,
+        address dao
+    ) public view returns (uint256) {
+        return lastPayment[dao][user] + daoDetails[dao].period;
+    }
+
+    /**
+     * @notice Allows the DAO to withdraw its entire balance.
+     *
+     * @dev The function can only be called by a registered DAO where the vault address matches the sender's address. It will revert if there is no balance to withdraw or if the DAO is not registered or if the vault address does not match the sender's address. The function uses the `nonReentrant` modifier to prevent reentrancy attacks.
+     *
+     * Note that this function sets the DAO's balance to zero before attempting the transfer, resulting in a permanent loss of all funds if the transfer fails.
+     *
+     */
+    function withdrawDaoBalance() public nonReentrant {
+        require(
+            daoDetails[msg.sender].vault != address(0),
+            "Dao not registered"
+        );
+        require(
+            daoDetails[msg.sender].vault == msg.sender,
+            "Vault can't be different from sender"
+        );
+        require(daoBalances[msg.sender] > 0, "No balance to withdraw");
+        daoBalances[msg.sender] = 0;
+        daoDetails[msg.sender].vault.transfer(daoBalances[msg.sender]);
     }
 }
