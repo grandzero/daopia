@@ -272,7 +272,7 @@ contract DaoTaxer is ReentrancyGuard {
         address dao,
         uint256 amount,
         bool isLocked
-    ) private {
+    ) private nonReentrant {
         address payable to_address = isLocked
             ? daoDetails[dao].vault
             : payable(address(this));
@@ -280,6 +280,7 @@ contract DaoTaxer is ReentrancyGuard {
         if (daoDetails[dao].paymentType == PaymentType.Ether) {
             to_address.transfer(amount - userDiscounts[dao][msg.sender]);
         } else {
+            require(daoDetails[dao].paymentContract != address(0), "No token");
             IERC20 paymentToken = IERC20(daoDetails[dao].paymentContract);
             bool success = paymentToken.transferFrom(
                 msg.sender,
