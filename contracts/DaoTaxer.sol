@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract DaoTaxer is ReentrancyGuard {
     /*
@@ -19,7 +20,7 @@ contract DaoTaxer is ReentrancyGuard {
     // Contract on callibraion : 0x5f3E5Ec71423380e2E652dafA98E5654a969d2BE
 
     /**
-     * V.0.1
+     * V.0.3
      * - ragisterDao
      * - makePayment
      * - getUser
@@ -29,6 +30,9 @@ contract DaoTaxer is ReentrancyGuard {
      * - applyDiscount
      * - getUserExpiration
      * - withdrawDaoBalance
+     * - Pay with token/ether
+     * - Withdraw ether/token instanly or use as vault
+     * - Discount logic
      */
     enum PaymentType {
         Token,
@@ -98,10 +102,6 @@ contract DaoTaxer is ReentrancyGuard {
                 RegistrationStatus.Open,
             "Dao registration closed"
         );
-        require(
-            daoDetails[selectedDao].paymentType == PaymentType.Ether,
-            "Dao payment type not supported"
-        );
 
         // Check if user has discount
         if (userDiscounts[selectedDao][msg.sender] > 0) {
@@ -121,8 +121,13 @@ contract DaoTaxer is ReentrancyGuard {
             msg.value >= daoDetails[selectedDao].price,
             "Insufficient payment"
         );
+
+        makeAnyPayment(
+            selectedDao,
+            msg.value,
+            daoDetails[selectedDao].isBalanceLocked
+        );
         lastPayment[selectedDao][msg.sender] = block.timestamp;
-        daoBalances[selectedDao] += msg.value;
     }
 
     /**
@@ -252,5 +257,38 @@ contract DaoTaxer is ReentrancyGuard {
         require(daoBalances[msg.sender] > 0, "No balance to withdraw");
         daoBalances[msg.sender] = 0;
         daoDetails[msg.sender].vault.transfer(daoBalances[msg.sender]);
+    }
+
+    /**
+     * @notice Handles payments, with a discount applied, either to the DAO's vault or the contract itself based on the `isLocked` parameter.
+     *
+     * @dev A private function that carries out payment transfers, handling both Ether and ERC20 token payments. If the payment is in tokens, it leverages the ERC20 `transferFrom` method to transfer tokens from the sender to the recipient, applying any user-specific discount. It resets the user's discount to zero after the payment. If the token transfer fails, it reverts with a "Transfer failed" error message.
+     *
+     * @param dao The address of the DAO involved in the transaction.
+     * @param amount The original payment amount before any discount is applied.
+     * @param isLocked Determines the recipient of the payment: if true, the payment goes to the DAO's vault; if false, it goes to this contract's address.
+     */
+    function makeAnyPayment(
+        address dao,
+        uint256 amount,
+        bool isLocked
+    ) private {
+        address payable to_address = isLocked
+            ? daoDetails[dao].vault
+            : payable(address(this));
+
+        if (daoDetails[dao].paymentType == PaymentType.Ether) {
+            to_address.transfer(amount - userDiscounts[dao][msg.sender]);
+        } else {
+            IERC20 paymentToken = IERC20(daoDetails[dao].paymentContract);
+            bool success = paymentToken.transferFrom(
+                msg.sender,
+                to_address,
+                amount - userDiscounts[dao][msg.sender]
+            );
+            require(success, "Transfer failed");
+        }
+
+        userDiscounts[dao][msg.sender] = 0;
     }
 }
