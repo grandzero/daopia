@@ -315,23 +315,20 @@ contract DaoTaxer is ReentrancyGuard, ERC721Holder {
     }
 
     /**
-    * @notice Allows a user to make a proposal to a DAO by providing necessary details including a content identifier and a description.
-    *
-    * @dev The function can only be called when the DAO is registered and has a registration status of "Permissioned". It interacts with an external contract `TablelandDeployments` to mutate a data table with the proposal details. It uses the `nonReentrant` modifier to prevent reentrancy attacks. The function reverts with appropriate error messages if the DAO is not registered or if the DAO registration status is not "Permissioned".
-    *
-    * @param dao The address of the DAO where the proposal is being made.
-    * @param cid The content identifier of the proposal, representing the content address in a content-addressed storage system.
-    * @param description A descriptive text providing details about the proposal.
-    */
+     * @notice Allows a user to make a proposal to a DAO by providing necessary details including a content identifier and a description.
+     *
+     * @dev The function can only be called when the DAO is registered and has a registration status of "Permissioned". It interacts with an external contract `TablelandDeployments` to mutate a data table with the proposal details. It uses the `nonReentrant` modifier to prevent reentrancy attacks. The function reverts with appropriate error messages if the DAO is not registered or if the DAO registration status is not "Permissioned".
+     *
+     * @param dao The address of the DAO where the proposal is being made.
+     * @param cid The content identifier of the proposal, representing the content address in a content-addressed storage system.
+     * @param description A descriptive text providing details about the proposal.
+     */
     function makeProposalToDao(
         address dao,
         string memory cid,
         string memory description
     ) public nonReentrant {
-        require(
-            daoDetails[dao].vault != address(0),
-            "Dao not registered"
-        );
+        require(daoDetails[dao].vault != address(0), "Dao not registered");
         require(
             daoDetails[dao].registrationStatus ==
                 RegistrationStatus.Permissioned,
@@ -346,30 +343,28 @@ contract DaoTaxer is ReentrancyGuard, ERC721Holder {
                 _tableId,
                 "contributer,cid,description,approved",
                 string.concat(
-                   SQLHelpers.quote(Strings.toHexString(msg.sender)),
+                    SQLHelpers.quote(Strings.toHexString(msg.sender)),
                     ",",
                     cid,
                     ",",
                     description,
                     ",",
                     "false"
+                )
             )
-        ));
+        );
     }
 
     /**
-    * @notice Allows the approval of a specific proposal in a DAO.
-    *
-    * @dev The function can be invoked only when the DAO is registered and its registration status is "Permissioned". It updates the proposal's approval status in the DAO's associated table in the TablelandDeployments contract. The function uses the `nonReentrant` modifier to prevent reentrancy attacks and reverts with error messages if the DAO is not registered or if it is not in the "Permissioned" registration status.
-    *
-    * @param dao The address of the DAO where the proposal exists.
-    * @param id The ID of the proposal to be approved.
-    */
+     * @notice Allows the approval of a specific proposal in a DAO.
+     *
+     * @dev The function can be invoked only when the DAO is registered and its registration status is "Permissioned". It updates the proposal's approval status in the DAO's associated table in the TablelandDeployments contract. The function uses the `nonReentrant` modifier to prevent reentrancy attacks and reverts with error messages if the DAO is not registered or if it is not in the "Permissioned" registration status.
+     *
+     * @param dao The address of the DAO where the proposal exists.
+     * @param id The ID of the proposal to be approved.
+     */
     function approveProposal(address dao, uint256 id) public nonReentrant {
-        require(
-            daoDetails[dao].vault != address(0),
-            "Dao not registered"
-        );
+        require(daoDetails[dao].vault != address(0), "Dao not registered");
         require(
             daoDetails[dao].registrationStatus ==
                 RegistrationStatus.Permissioned,
@@ -382,23 +377,15 @@ contract DaoTaxer is ReentrancyGuard, ERC721Holder {
             SQLHelpers.quote("true") // Wrap strings in single quotes
         );
         // Only update the row with the matching `id`
-        string memory filters = string.concat(
-        "id=",
-        Strings.toString(id)
-        );
+        string memory filters = string.concat("id=", Strings.toString(id));
         /*  Under the hood, SQL helpers formulates:
-        *
-        *  UPDATE {prefix}_{chainId}_{tableId} SET val=<myVal> WHERE id=<id>
-        */
+         *
+         *  UPDATE {prefix}_{chainId}_{tableId} SET val=<myVal> WHERE id=<id>
+         */
         TablelandDeployments.get().mutate(
             address(this),
             _tableId,
-            SQLHelpers.toUpdate(
-                _TABLE_PREFIX,
-                _tableId,
-                setters,
-                filters
-            )
+            SQLHelpers.toUpdate(_TABLE_PREFIX, _tableId, setters, filters)
         );
     }
 }

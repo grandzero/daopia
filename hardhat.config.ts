@@ -6,8 +6,9 @@ const config: HardhatUserConfig = {
   networks: {
     hardhat: {
       forking: {
-        url: "https://api.calibration.node.glif.io/rpc/v1",
+        url: "https://polygon-testnet.public.blastapi.io",
       },
+      chainId: 80001,
     },
   },
 };
