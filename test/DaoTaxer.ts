@@ -24,10 +24,7 @@ import {
   
     describe("Deployment", function () {
       it("Should register a dao", async function () {
-        console.log("Before deploy")
         const { daoTaxer, owner  } = await loadFixture(deployOneYearLockFixture);
-        console.log(owner.address)
-        console.log("After deploy")
         const registrationDetails = {
             period: 3600,
             price: ethers.parseEther("0.1"),
@@ -40,8 +37,9 @@ import {
         // Ensure the owner (accounts[0]) is calling the function
         await daoTaxer.registerDao(registrationDetails);
         const daoDetails = await daoTaxer.daoDetails(owner.address);
-        expect(1).to.equal(1);
+        expect(daoDetails.vault).to.equal(owner.address);
       });
+      
      
     });
   
