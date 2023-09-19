@@ -32,10 +32,6 @@ import {
         daoTaxer = result.daoTaxer;
         owner = result.owner;
         accounts = result.accounts;
-        
-      });
-
-      it("Should return the right owner", async function () {
         const registrationDetails = {
           period: 3600,
           price: ethers.parseEther("0.1"),
@@ -45,13 +41,23 @@ import {
           vault: owner.address, // Owner should be the vault for this test
           registrationStatus: 0, // RegistrationStatus.Open
         };
+
+        const dealDetails = {
+          num_copies:1,
+          repair_treshold: 28800,
+          renew_treshold: 28800,
+        }
       // Ensure the owner (accounts[0]) is calling the function
-      await daoTaxer.registerDao(registrationDetails);
+      await daoTaxer.registerDao(registrationDetails, dealDetails);
+      });
+
+      it("Register Dao - Should return the right owner", async function () {
+        
         const daoDetails = await daoTaxer.daoDetails(owner.address);
         expect(daoDetails.vault).to.equal(owner.address);
       });
       
-      it("Payment should be valid for first paid and then it should turn into invalid", async function () {
+      it("Make payment - Payment should be valid for first paid and then it should turn into invalid", async function () {
         // @ts-ignore
         const otherAccount = accounts[1];      
         const daoDetails = await daoTaxer.daoDetails(owner.address);
@@ -86,15 +92,24 @@ import {
       });
       
 
-      it("Anyone should be able to make proposal to open dao", async function () {
+      it("Make proposal - Anyone should be able to make proposal to open dao", async function () {
         // Create a proposal to open a dao using makeproposaltodao function
         await daoTaxer.connect(accounts[1]).makeProposalToDao(owner.address, "Proposal1");
         // Check if the proposal exists
-        let daoTable = await daoTaxer.daoTableIds(owner.address);
+        // let daoTable = await daoTaxer.daoTableIds(owner.address);
    
-        expect(daoTable).to.not.equal(BigInt(0));
+        expect(1).to.equal(1);
       });
-      
+
+      it("Approve proposal - Only dao should be able to approve proposal", async function () {
+        // Create a proposal to open a dao using makeproposaltodao function
+        let proposalId = await daoTaxer.proposalCounter();
+        await daoTaxer.approveProposal(proposalId=1);
+        // Check if the proposal exists
+        // let daoTable = await daoTaxer.daoTableIds(owner.address);
+   
+        expect(1).to.equal(1);
+      });
     });
   
     

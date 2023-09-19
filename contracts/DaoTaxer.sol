@@ -18,26 +18,8 @@ contract DaoTaxer is ReentrancyGuard, ERC721Holder {
      *
      */
 
-    /* [3600,200000000000000000,1,0xFD23c55fc75e1eaAdBB5493639C84b54B331A396,0xFD23c55fc75e1eaAdBB5493639C84b54B331A396,0] */
 
-    // Owner address : 0xFD23c55fc75e1eaAdBB5493639C84b54B331A396
-    // Contract on callibraion : 0x5f3E5Ec71423380e2E652dafA98E5654a969d2BE
 
-    /**
-     * V.0.3
-     * - ragisterDao
-     * - makePayment
-     * - getUser
-     * - changeRegistration
-     * - changePrice
-     * - changePeriod
-     * - applyDiscount
-     * - getUserExpiration
-     * - withdrawDaoBalance
-     * - Pay with token/ether
-     * - Withdraw ether/token instanly or use as vault
-     * - Discount logic
-     */
     enum PaymentType {
         Token,
         Ether,
@@ -60,6 +42,19 @@ contract DaoTaxer is ReentrancyGuard, ERC721Holder {
         RegistrationStatus registrationStatus;
     }
 
+    struct DealDetails{
+        uint256 repair_treshold; 
+        uint256 renew_treshold;
+        uint256 num_copies;
+    }
+
+    struct ProposalDetails{
+        address contributer;
+        string cid; 
+        string description;
+        uint256 status;
+    }
+
     // Used for registration, Dao's can use this to register their details
     mapping(address => DaoDetails) public daoDetails;
     // Used for tracking Dao's balances (if active)
@@ -70,9 +65,129 @@ contract DaoTaxer is ReentrancyGuard, ERC721Holder {
     // Dao registration address  => user address => last payment
     mapping(address => mapping(address => uint256)) public lastPayment;
 
+    // Daos can use this to automate renewals/replications
+    mapping(address => DealDetails) public dealDetails;
     // Used for tracking Dao's table ids
-    mapping(address => uint256) public daoTableIds;
-    string private constant _TABLE_PREFIX = "dao_taxer_";
+    uint256 public daoTableId;
+    uint256 public proposalsTableId;
+    uint256 public proposalCounter;
+    string private constant _TABLE_PREFIX = "dao_taxer_proposals_";
+
+    
+    /**
+    * @notice Creates a new table in the TablelandDeployments contract with a specific schema to hold DAO proposals.
+    *
+    * @dev A private function that initializes a new table through the TablelandDeployments contract, with columns to store details about proposals including the contributor address, DAO address, content identifier, description, and approval status. The created table will be identified using `daoTableId`.
+    */
+    function crateProposalTable() private {
+        proposalsTableId = TablelandDeployments.get().create(
+            address(this),
+            SQLHelpers.toCreateFromSchema(
+                "id integer primary key,"
+                "contributer text" // Notice the trailing comma
+                "dao text,"
+                "cid text,"
+                "description text,"
+                "status integer",
+                _TABLE_PREFIX
+            )
+        );
+    }
+
+    constructor() {
+        
+        crateProposalTable();
+    }
+
+
+    /**
+    * @notice Inserts proposal details into the proposals table created in the TablelandDeployments contract.
+    *
+    * @dev A private function that stores a new proposal's details into the DAO's proposal table, using the TablelandDeployments contract to facilitate the insert operation with specified details.
+    *
+    * @param details A struct containing the details of the proposal to be inserted, including contributor address, content identifier (cid), description, and approval status.
+    * @param dao The address of the DAO to which the proposal is being made.
+    */
+    function insertProposalTable(ProposalDetails memory details, address dao) private{
+        string memory status = SQLHelpers.quote(Strings.toString(details.status));
+        TablelandDeployments.get().mutate(
+            address(this),
+            proposalsTableId,
+            SQLHelpers.toInsert(
+                _TABLE_PREFIX,
+                proposalsTableId,
+                "id,contributer,dao,cid,description,status",
+                string.concat(
+                    SQLHelpers.quote(Strings.toString(++proposalCounter)),
+                     ",",
+                    SQLHelpers.quote(Strings.toHexString(details.contributer)),
+                    ",",
+                    SQLHelpers.quote(Strings.toHexString(dao)),
+                    ",",
+                    details.cid,
+                    ",",
+                    details.description,
+                    ",",
+                    status
+                )
+            )
+        );
+    }
+    /**
+    * @notice Updates the proposal details in the proposals table of the TablelandDeployments contract, setting the "approved" field to true.
+    *
+    * @dev A private function that updates the approval status of proposals associated with a specific DAO in the proposals table. It constructs an SQL update query using SQLHelpers to set the "approved" column to true for the matching DAO address. The function operates on the table identified by `proposalsTableId`.
+    *
+    * @param id The address of the DAO to which the proposal pertains.
+    * @param dao The address of the DAO to which the proposal pertains.
+    */
+    
+    function approveProposalTable(uint256 id, address dao) private{
+        uint256 _tableId = proposalsTableId;
+        string memory setters = string.concat(
+            "status=",
+            SQLHelpers.quote("1") // Wrap strings in single quotes
+        );
+        // Only update the row with the matching `id`
+        string memory filters = string.concat("id=", SQLHelpers.quote(Strings.toString(id)),"AND", "dao=", SQLHelpers.quote(Strings.toHexString(dao)));
+        /*  Under the hood, SQL helpers formulates:
+         *
+         *  UPDATE {prefix}_{chainId}_{tableId} SET val=<myVal> WHERE id=<id>
+         */
+        TablelandDeployments.get().mutate(
+            address(this),
+            _tableId,
+            SQLHelpers.toUpdate(_TABLE_PREFIX, _tableId, setters, filters)
+        );
+    }
+
+     /**
+    * @notice Updates the proposal details in the proposals table of the TablelandDeployments contract, setting the "approved" field to true.
+    *
+    * @dev A private function that updates the approval status of proposals associated with a specific DAO in the proposals table. It constructs an SQL update query using SQLHelpers to set the "approved" column to true for the matching DAO address. The function operates on the table identified by `proposalsTableId`.
+    *
+    * @param dao The address of the DAO to which the proposal pertains.
+    * @param cid The content identifier of the proposal to be approved.
+    */
+    function changeCidOnProposalTable(address dao, string memory cid) private{
+        uint256 _tableId = proposalsTableId;
+        string memory setters = string.concat(
+            "cid=",
+            SQLHelpers.quote(cid) // Wrap strings in single quotes
+        );
+        // Only update the row with the matching `id`
+        string memory filters = string.concat("dao=", SQLHelpers.quote(Strings.toHexString(dao)));
+        /*  Under the hood, SQL helpers formulates:
+         *
+         *  UPDATE {prefix}_{chainId}_{tableId} SET val=<myVal> WHERE id=<id>
+         */
+        TablelandDeployments.get().mutate(
+            address(this),
+            _tableId,
+            SQLHelpers.toUpdate(_TABLE_PREFIX, _tableId, setters, filters)
+        );
+    }
+
 
     /**
      * @notice Registers a new DAO with the given details.
@@ -85,7 +200,8 @@ contract DaoTaxer is ReentrancyGuard, ERC721Holder {
      * This function does not return a value; it reverts if the DAO cannot be registered.
      */
     function registerDao(
-        DaoDetails memory registrationDetails
+        DaoDetails memory registrationDetails,
+        DealDetails memory details
     ) public nonReentrant {
         // Check if dao is already registered
         require(
@@ -98,21 +214,34 @@ contract DaoTaxer is ReentrancyGuard, ERC721Holder {
         );
         // Register Dao
         daoDetails[msg.sender] = registrationDetails;
-        
-        uint256 _tableId = TablelandDeployments.get().create(
-            address(this),
-            SQLHelpers.toCreateFromSchema(
-                "id integer primary key," // Notice the trailing comma
-                "contributer text,"
-                "cid text,"
-                "description text,"
-                "approved boolean",
-                _TABLE_PREFIX
-            )
-        );
-        daoTableIds[msg.sender] = _tableId;
+        require(details.num_copies <=3 , "Max 3 copies allowed");
+        dealDetails[msg.sender] = details;
     }
 
+    /**
+    * @notice Allows the caller to update the details of their DAO in the contract's storage.
+    *
+    * @dev A public function that enables the sender to update the details associated with their DAO. It requires that the DAO is already registered, i.e., the vault address is not the zero address. The details are passed in as a DaoDetails struct, and are stored in the mapping directly, overwriting the existing details.
+    *
+    * @param details A struct holding the new details to update for the DAO associated with the message sender.
+    */
+    function changeDaoDetails(DaoDetails memory details) public{
+        require(
+            daoDetails[msg.sender].vault != address(0),
+            "Dao not registered"
+        );
+        daoDetails[msg.sender] = details;
+    }
+
+
+
+    /**
+    * @notice Facilitates payment to a selected DAO, accounting for any applicable user discounts.
+    *
+    * @dev A public function that requires the selected DAO to be registered and open for registration. It checks if the user has any discount and adjusts the required payment accordingly. The function also calls `makeAnyPayment` to handle the actual payment transfer, passing in the DAO's lock status for the balance. Finally, it updates the last payment timestamp for the user in context of the selected DAO. It uses the `nonReentrant` modifier to prevent reentrancy attacks.
+    *
+    * @param selectedDao The address of the DAO to which the payment is being made.
+    */
     function makePayment(address selectedDao) public payable nonReentrant {
         require(
             daoDetails[selectedDao].vault != address(0),
@@ -333,23 +462,7 @@ contract DaoTaxer is ReentrancyGuard, ERC721Holder {
                 RegistrationStatus.Open,
             "Dao registration closed"
         );
-        uint256 _tableId = daoTableIds[dao];
-        TablelandDeployments.get().mutate(
-            address(this),
-            _tableId,
-            SQLHelpers.toInsert(
-                _TABLE_PREFIX,
-                _tableId,
-                "contributer,description,approved",
-                string.concat(
-                    SQLHelpers.quote(Strings.toHexString(msg.sender)),
-                    ",",
-                    description,
-                    ",",
-                    "false"
-                )
-            )
-        );
+       insertProposalTable(ProposalDetails(msg.sender, "", description, 0), dao);
     }
 
     /**
@@ -357,33 +470,17 @@ contract DaoTaxer is ReentrancyGuard, ERC721Holder {
      *
      * @dev The function can be invoked only when the DAO is registered and its registration status is "Permissioned". It updates the proposal's approval status in the DAO's associated table in the TablelandDeployments contract. The function uses the `nonReentrant` modifier to prevent reentrancy attacks and reverts with error messages if the DAO is not registered or if it is not in the "Permissioned" registration status.
      *
-     * @param id The ID of the proposal to be approved.
      */
     function approveProposal(uint256 id) public nonReentrant {
         address dao = msg.sender;
         require(daoDetails[dao].vault != address(0), "Dao not registered");
         require(
             daoDetails[dao].registrationStatus ==
-                RegistrationStatus.Permissioned,
+                RegistrationStatus.Open,
             "Dao registration closed"
         );
         require(daoDetails[dao].vault == msg.sender, "Only dao can approve");
-        uint256 _tableId = daoTableIds[dao];
-        string memory setters = string.concat(
-            "approved=",
-            SQLHelpers.quote("true") // Wrap strings in single quotes
-        );
-        // Only update the row with the matching `id`
-        string memory filters = string.concat("id=", Strings.toString(id));
-        /*  Under the hood, SQL helpers formulates:
-         *
-         *  UPDATE {prefix}_{chainId}_{tableId} SET val=<myVal> WHERE id=<id>
-         */
-        TablelandDeployments.get().mutate(
-            address(this),
-            _tableId,
-            SQLHelpers.toUpdate(_TABLE_PREFIX, _tableId, setters, filters)
-        );
+        approveProposalTable(id,dao);
     }
 
      receive() external payable{}
