@@ -293,7 +293,7 @@ contract DaoTaxer is ReentrancyGuard, ERC721Holder {
         address dao,
         uint256 amount,
         bool isLocked
-    ) private nonReentrant {
+    ) private {
         address payable to_address = isLocked
             ? daoDetails[dao].vault
             : payable(address(this));
@@ -388,4 +388,6 @@ contract DaoTaxer is ReentrancyGuard, ERC721Holder {
             SQLHelpers.toUpdate(_TABLE_PREFIX, _tableId, setters, filters)
         );
     }
+
+     receive() external payable{}
 }

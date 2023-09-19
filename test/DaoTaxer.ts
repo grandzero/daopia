@@ -14,17 +14,26 @@ import {
   
   
       // Contracts are deployed using the first signer/account by default
-      const [owner, otherAccount] = await ethers.getSigners();
+      const [owner, ...accounts] = await ethers.getSigners();
   
       const DaoTaxer = await ethers.getContractFactory("DaoTaxer");
       const daoTaxer = await DaoTaxer.deploy();
   
-      return { daoTaxer, owner, otherAccount };
+      return { daoTaxer, owner, accounts };
     }
   
     describe("Deployment", function () {
+      let daoTaxer:any;
+      let owner:any;
+      let accounts:any;
+      beforeEach(async () => {
+        let result = await loadFixture(deployOneYearLockFixture);
+        daoTaxer = result.daoTaxer;
+        owner = result.owner;
+        accounts = result.accounts;
+      });
       it("Should register a dao", async function () {
-        const { daoTaxer, owner  } = await loadFixture(deployOneYearLockFixture);
+        
         const registrationDetails = {
             period: 3600,
             price: ethers.parseEther("0.1"),
@@ -39,8 +48,54 @@ import {
         const daoDetails = await daoTaxer.daoDetails(owner.address);
         expect(daoDetails.vault).to.equal(owner.address);
       });
+
+      it("Payment should be valid for first paid and then it should turn into invalid", async function () {
+        // @ts-ignore
+        const otherAccount = accounts[1];
+        const registrationDetails = {
+            period: 3600,
+            price: ethers.parseEther("0.1"),
+            isBalanceLocked: false,
+            paymentType: 1, // PaymentType.Ether
+            paymentContract: ethers.ZeroAddress, // This is for Ether payment
+            vault: owner.address, // Owner should be the vault for this test
+            registrationStatus: 0, // RegistrationStatus.Open
+          };
+        // Ensure the owner (accounts[0]) is calling the function
+        await daoTaxer.registerDao(registrationDetails);
       
-     
+        const daoDetails = await daoTaxer.daoDetails(owner.address);
+        expect(daoDetails.vault).to.equal(owner.address);
+        // Ensure the other account is making the payment with 0.5 ETH attached
+        
+        await daoTaxer.connect(otherAccount).makePayment(owner.address, { value: ethers.parseEther("0.5") });
+       
+        expect(await ethers.provider.getBalance(await daoTaxer.getAddress())).to.equal(ethers.parseEther("0.5"));
+        // Fast forward the block timestamp by 10,000 seconds
+        //@ts-ignore
+        let userDetails = await daoTaxer.getUser(otherAccount.address, owner.address);
+        let first = BigInt(1);
+        
+        expect(userDetails).to.equal(first);
+        //@ts-ignore
+        let blockTimestamp = await ethers.provider.getBlock("latest").then((block) => block.timestamp);
+       
+        await ethers.provider.send("evm_increaseTime", [10000]);
+        await ethers.provider.send("evm_mine");
+          // Get block timestamp
+          //@ts-ignore
+         let afterBlockTimestamp = await ethers.provider.getBlock("latest").then((block) => block.timestamp);
+        
+         expect(afterBlockTimestamp-blockTimestamp).greaterThanOrEqual(10000);
+         // Call the getUser function with the other account's address
+         //@ts-ignore
+        userDetails = await daoTaxer.getUser(otherAccount.address, owner.address);
+        
+        let second = BigInt(0);
+        expect(userDetails).to.equal(second);
+      });
+      
+      
     });
   
     
