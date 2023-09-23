@@ -6,6 +6,8 @@
     // We use loadFixture to run this setup once, snapshot that state,
     // and reset Hardhat Network to that snapshot in every test.
     async function deployOneYearLockFixture() {
+
+       
       
       const Cid = await ethers.getContractFactory('Cid');
         
@@ -68,9 +70,6 @@
 
       it("Successfully deploy the deal status contract", async function () {
        
-  
-  
-    
       let dealsAddress = await daopia.dealStatus();
       const dealStatus = await ethers.getContractAt("DealStatus", dealsAddress);
       const daopiaAddress = await dealStatus.daopia();

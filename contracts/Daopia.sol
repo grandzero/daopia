@@ -68,11 +68,10 @@ contract Daopia is ReentrancyGuard, ERC721Holder {
     // Daos can use this to automate renewals/replications
     mapping(address => DealDetails) public dealDetails;
     // Used for tracking Dao's table ids
-    uint256 public daoTableId;
     uint256 public proposalsTableId;
     uint256 public proposalCounter;
     DealStatus public dealStatus;
-    string private constant _TABLE_PREFIX = "daopia_proposals_";
+    string private constant _TABLE_PREFIX = "daopia";
 
     
     /**
@@ -85,13 +84,14 @@ contract Daopia is ReentrancyGuard, ERC721Holder {
             address(this),
             SQLHelpers.toCreateFromSchema(
                 "id integer primary key,"
-                "contributer text" // Notice the trailing comma
+                "contributer text," // Notice the trailing comma
                 "dao text,"
                 "cid text,"
                 "description text,"
                 "status integer",
                 _TABLE_PREFIX
             )
+            
         );
     }
 
@@ -125,9 +125,9 @@ contract Daopia is ReentrancyGuard, ERC721Holder {
                     ",",
                     SQLHelpers.quote(Strings.toHexString(dao)),
                     ",",
-                    details.cid,
+                    SQLHelpers.quote(details.cid),
                     ",",
-                    details.description,
+                    SQLHelpers.quote(details.description),
                     ",",
                     status
                 )
@@ -463,7 +463,7 @@ contract Daopia is ReentrancyGuard, ERC721Holder {
                 RegistrationStatus.Open,
             "Dao registration closed"
         );
-       insertProposalTable(ProposalDetails(msg.sender, "testcid", description, 0), dao);
+       insertProposalTable(ProposalDetails(msg.sender, "cid", description, 0), dao);
     }
 
     /**
