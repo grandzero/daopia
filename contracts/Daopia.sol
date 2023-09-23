@@ -55,6 +55,12 @@ contract Daopia is ReentrancyGuard, ERC721Holder {
         uint256 status;
     }
 
+    struct DaoFrontend{
+        string name;
+        string description;
+        string logoUrl;
+    }
+
     // Used for registration, Dao's can use this to register their details
     mapping(address => DaoDetails) public daoDetails;
     // Used for tracking Dao's balances (if active)
@@ -73,6 +79,7 @@ contract Daopia is ReentrancyGuard, ERC721Holder {
     address private owner;
     DealStatus public dealStatus;
     string private constant _TABLE_PREFIX = "daopia";
+    DaoFrontend[] public daoFrontends;
 
     
     /**
@@ -206,7 +213,8 @@ contract Daopia is ReentrancyGuard, ERC721Holder {
      */
     function registerDao(
         DaoDetails memory registrationDetails,
-        DealDetails memory details
+        DealDetails memory details,
+        DaoFrontend memory frontend
     ) public nonReentrant {
         // Check if dao is already registered
         require(
@@ -221,6 +229,7 @@ contract Daopia is ReentrancyGuard, ERC721Holder {
         daoDetails[msg.sender] = registrationDetails;
         require(details.num_copies <=3 , "Max 3 copies allowed");
         dealDetails[msg.sender] = details;
+        daoFrontends.push(frontend);
     }
 
     /**
@@ -476,7 +485,7 @@ contract Daopia is ReentrancyGuard, ERC721Holder {
      * @dev The function can be invoked only when the DAO is registered and its registration status is "Permissioned". It updates the proposal's approval status in the DAO's associated table in the TablelandDeployments contract. The function uses the `nonReentrant` modifier to prevent reentrancy attacks and reverts with error messages if the DAO is not registered or if it is not in the "Permissioned" registration status.
      *
      */
-    function approveProposal(string memory _cid, uint256 id) public nonReentrant {
+    function approveProposal(string memory _cid, uint256 id, uint256 jobType) public nonReentrant {
         address dao = msg.sender;
         require(daoDetails[dao].vault != address(0), "Dao not registered");
         require(
@@ -486,7 +495,7 @@ contract Daopia is ReentrancyGuard, ERC721Holder {
         );
         require(daoDetails[dao].vault == msg.sender, "Only dao can approve");
         approveProposalTable(id,dao);
-        dealStatus.submit(bytes(_cid));
+        dealStatus.approvedByDao(bytes(_cid),jobType, dao);
     }
 
      receive() external payable{}

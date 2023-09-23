@@ -13,14 +13,13 @@ contract DealStatus is IAggregatorOracle, Proof {
     address public daopia;
     mapping(uint256 => bytes) private txIdToCid;
     mapping(bytes => Deal[]) private cidToDeals;
-
+    event SubmitFromDao(bytes cid, uint256 transactionId ,uint256 jobType, address dao);
     constructor() {
         transactionId = 0;
         daopia = msg.sender;
     }
 
     function submit(bytes memory _cid) external returns (uint256) {
-        require(msg.sender == daopia, "Delta.submit: only owner can submit");
         // Increment the transaction ID
         transactionId++;
 
@@ -123,5 +122,18 @@ contract DealStatus is IAggregatorOracle, Proof {
         }
 
         return expiringDealIds;
+    }
+
+    function approvedByDao(bytes memory cid, uint256 jobType, address dao)public{
+        // Increment the transaction ID
+        transactionId++;
+
+        // Save _cid
+        txIdToCid[transactionId] = cid;
+
+        // Emit the event
+        emit SubmitFromDao(cid, transactionId ,jobType, dao);
+        return;
+    
     }
 }
