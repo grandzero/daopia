@@ -25,7 +25,7 @@ async function main() {
 //   return;
   //console.log("Wallet Ethereum Address:", wallet.address);
 
-  //deploy DealStatus
+// //   deploy DealStatus
 //   const Cid = await ethers.getContractFactory('Cid', accounts[0]);
 //   console.log('Deploying Cid...');
 //   const cid = await Cid.deploy();
@@ -58,7 +58,7 @@ async function main() {
 
 
 
-  const daopia = await ethers.getContractAt("Daopia", "0x68B1D87F95878fE05B998F19b66F4baba5De1aed");
+ const daopia = await ethers.getContractAt("Daopia", "0x3Aa5ebB10DC797CAC828524e59A333d0A371443c");
   let tableId = await daopia.proposalsTableId();
   console.log("Table ID is : ", tableId.toString());
   
@@ -83,11 +83,12 @@ async function main() {
     renew_treshold: 28800,
   }
 // Ensure the owner (accounts[0]) is calling the function
-//await daopia.registerDao(registrationDetails, dealDetails);
+    //await daopia.registerDao(registrationDetails, dealDetails);
 
-  await daopia.connect(accounts[1]).makeProposalToDao(accounts[0].address, "Proposal1");
+  //await daopia.connect(accounts[1]).makeProposalToDao(accounts[0].address, "Proposal1");
+  //await daopia.changeCidOnProposalTable(accounts[0].address, "New Cid Changed", 1);
   const db = new Database({autoWait: false,signer: accounts[0]});
- 
+  //await daopia.approveProposal("New Cid Changed",1);
   const { results } = await db.prepare(`SELECT * FROM ${tableName};`).all();
   console.log(results);
 }

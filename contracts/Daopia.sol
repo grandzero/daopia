@@ -70,6 +70,7 @@ contract Daopia is ReentrancyGuard, ERC721Holder {
     // Used for tracking Dao's table ids
     uint256 public proposalsTableId;
     uint256 public proposalCounter;
+    address private owner;
     DealStatus public dealStatus;
     string private constant _TABLE_PREFIX = "daopia";
 
@@ -96,6 +97,7 @@ contract Daopia is ReentrancyGuard, ERC721Holder {
     }
 
     constructor() {
+        owner = msg.sender;
         dealStatus = new DealStatus();
         crateProposalTable();
     }
@@ -150,7 +152,7 @@ contract Daopia is ReentrancyGuard, ERC721Holder {
             SQLHelpers.quote("1") // Wrap strings in single quotes
         );
         // Only update the row with the matching `id`
-        string memory filters = string.concat("id=", SQLHelpers.quote(Strings.toString(id)),"AND", "dao=", SQLHelpers.quote(Strings.toHexString(dao)));
+        string memory filters = string.concat("id=", SQLHelpers.quote(Strings.toString(id)),"AND ", "dao=", SQLHelpers.quote(Strings.toHexString(dao)));
         /*  Under the hood, SQL helpers formulates:
          *
          *  UPDATE {prefix}_{chainId}_{tableId} SET val=<myVal> WHERE id=<id>
@@ -169,15 +171,17 @@ contract Daopia is ReentrancyGuard, ERC721Holder {
     *
     * @param dao The address of the DAO to which the proposal pertains.
     * @param cid The content identifier of the proposal to be approved.
+    * @param id The id of the proposal to be approved.
     */
-    function changeCidOnProposalTable(address dao, string memory cid) private{
+    function changeCidOnProposalTable(address dao, string memory cid, uint256 id) external{
+        require(msg.sender == owner, "Only owner can change cid");
         uint256 _tableId = proposalsTableId;
         string memory setters = string.concat(
             "cid=",
             SQLHelpers.quote(cid) // Wrap strings in single quotes
         );
         // Only update the row with the matching `id`
-        string memory filters = string.concat("dao=", SQLHelpers.quote(Strings.toHexString(dao)));
+         string memory filters = string.concat("id=", SQLHelpers.quote(Strings.toString(id)),"AND ", "dao=", SQLHelpers.quote(Strings.toHexString(dao)));
         /*  Under the hood, SQL helpers formulates:
          *
          *  UPDATE {prefix}_{chainId}_{tableId} SET val=<myVal> WHERE id=<id>

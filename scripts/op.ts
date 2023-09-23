@@ -2,7 +2,7 @@ import { ethers } from "hardhat";
 import { Database } from "@tableland/sdk";
 const wallet = new ethers.Wallet(process.env.PRIVATE_KEY || "", ethers.provider)
 async function main() {
-  const daopia = await ethers.getContractAt("Daopia", "0x9f0107446A47b2D56e4572301cE29679b02dd146");
+  //const daopia = await ethers.getContractAt("Daopia", "0x9f0107446A47b2D56e4572301cE29679b02dd146");
   //let tableId = await daopia.proposalsTableId();
  // console.log("Table ID is : ", tableId.toString());
   // const accounts = await ethers.getSigners();
