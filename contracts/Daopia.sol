@@ -6,8 +6,8 @@ import "@tableland/evm/contracts/utils/TablelandDeployments.sol";
 import "@tableland/evm/contracts/utils/SQLHelpers.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
-
-contract DaoTaxer is ReentrancyGuard, ERC721Holder {
+import "./DealStatus.sol";
+contract Daopia is ReentrancyGuard, ERC721Holder {
     /*
      * Dao details :
      * Struct [...DealDetails, Period, Price, PaymentType, PaymentContract, Owner/Vault, Registration status, Discount]
@@ -71,7 +71,8 @@ contract DaoTaxer is ReentrancyGuard, ERC721Holder {
     uint256 public daoTableId;
     uint256 public proposalsTableId;
     uint256 public proposalCounter;
-    string private constant _TABLE_PREFIX = "dao_taxer_proposals_";
+    DealStatus public dealStatus;
+    string private constant _TABLE_PREFIX = "daopia_proposals_";
 
     
     /**
@@ -95,7 +96,7 @@ contract DaoTaxer is ReentrancyGuard, ERC721Holder {
     }
 
     constructor() {
-        
+        dealStatus = new DealStatus();
         crateProposalTable();
     }
 
