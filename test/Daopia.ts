@@ -70,22 +70,19 @@
        
   
   
-      // //deploy DealStatus
-      // const dealStatus = await ethers.getContractFactory('DealStatus', {
-      //     libraries: {
-      //         Cid: cid.address,
-      //     },
-      // });
-      // console.log('Deploying DealStatus...');
-      // const dealstatus = await dealStatus.deploy();
-      // await dealstatus.deployed()
-      // console.log('DealStatus deployed to:', dealstatus.address);
-      
-      //const dealStatusOwner = await dealstatus.daopia();
+    
       let dealsAddress = await daopia.dealStatus();
       const dealStatus = await ethers.getContractAt("DealStatus", dealsAddress);
       const daopiaAddress = await dealStatus.daopia();
         expect(daopiaAddress).to.equal(daopia.address);
+      });
+
+      it("Try calling submit with another wallet", async function () {
+        // @ts-ignore
+        const otherAccount = accounts[1];
+        const dealStatusAddress = await daopia.dealStatus();
+        const dealStatus = await ethers.getContractAt("DealStatus", dealStatusAddress);
+        await expect(dealStatus.connect(otherAccount).submit(ethers.utils.toUtf8Bytes("testcid"))).to.be.revertedWith("Delta.submit: only owner can submit");
       });
 
       it("Register Dao - Should return the right owner", async function () {
@@ -140,7 +137,7 @@
       it("Approve proposal - Only dao should be able to approve proposal", async function () {
         // Create a proposal to open a dao using makeproposaltodao function
         let proposalId = await daopia.proposalCounter();
-        await daopia.approveProposal(proposalId=1);
+        await daopia.approveProposal("testcid",proposalId=1);
         // Check if the proposal exists
         // let daoTable = await daopia.daoTableIds(owner.address);
    

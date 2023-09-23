@@ -463,7 +463,7 @@ contract Daopia is ReentrancyGuard, ERC721Holder {
                 RegistrationStatus.Open,
             "Dao registration closed"
         );
-       insertProposalTable(ProposalDetails(msg.sender, "", description, 0), dao);
+       insertProposalTable(ProposalDetails(msg.sender, "testcid", description, 0), dao);
     }
 
     /**
@@ -472,7 +472,7 @@ contract Daopia is ReentrancyGuard, ERC721Holder {
      * @dev The function can be invoked only when the DAO is registered and its registration status is "Permissioned". It updates the proposal's approval status in the DAO's associated table in the TablelandDeployments contract. The function uses the `nonReentrant` modifier to prevent reentrancy attacks and reverts with error messages if the DAO is not registered or if it is not in the "Permissioned" registration status.
      *
      */
-    function approveProposal(uint256 id) public nonReentrant {
+    function approveProposal(string memory _cid, uint256 id) public nonReentrant {
         address dao = msg.sender;
         require(daoDetails[dao].vault != address(0), "Dao not registered");
         require(
@@ -482,6 +482,7 @@ contract Daopia is ReentrancyGuard, ERC721Holder {
         );
         require(daoDetails[dao].vault == msg.sender, "Only dao can approve");
         approveProposalTable(id,dao);
+        dealStatus.submit(bytes(_cid));
     }
 
      receive() external payable{}
