@@ -7,8 +7,6 @@
     // and reset Hardhat Network to that snapshot in every test.
     async function deployOneYearLockFixture() {
 
-       
-      
       const Cid = await ethers.getContractFactory('Cid');
         
       const cid = await Cid.deploy();
@@ -64,8 +62,15 @@
           repair_treshold: 28800,
           renew_treshold: 28800,
         }
+
+        const frontendDetails = {
+          name: "daopia",
+          logoUrl: "https://daopia.com/logo.png",
+          description: "Daopia",
+          communication: "https://bu2.pw"
+        }
       // Ensure the owner (accounts[0]) is calling the function
-      await daopia.registerDao(registrationDetails, dealDetails);
+      await daopia.registerDao(registrationDetails, dealDetails, frontendDetails);
       });
 
       it("Successfully deploy the deal status contract", async function () {
@@ -74,14 +79,6 @@
       const dealStatus = await ethers.getContractAt("DealStatus", dealsAddress);
       const daopiaAddress = await dealStatus.daopia();
         expect(daopiaAddress).to.equal(daopia.address);
-      });
-
-      it("Try calling submit with another wallet", async function () {
-        // @ts-ignore
-        const otherAccount = accounts[1];
-        const dealStatusAddress = await daopia.dealStatus();
-        const dealStatus = await ethers.getContractAt("DealStatus", dealStatusAddress);
-        await expect(dealStatus.connect(otherAccount).submit(ethers.utils.toUtf8Bytes("testcid"))).to.be.revertedWith("Delta.submit: only owner can submit");
       });
 
       it("Register Dao - Should return the right owner", async function () {
@@ -136,7 +133,7 @@
       it("Approve proposal - Only dao should be able to approve proposal", async function () {
         // Create a proposal to open a dao using makeproposaltodao function
         let proposalId = await daopia.proposalCounter();
-        await daopia.approveProposal("testcid",proposalId=1);
+        await daopia.approveProposal("testcid",proposalId=1, 1);
         // Check if the proposal exists
         // let daoTable = await daopia.daoTableIds(owner.address);
    

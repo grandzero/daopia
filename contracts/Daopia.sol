@@ -59,6 +59,7 @@ contract Daopia is ReentrancyGuard, ERC721Holder {
         string name;
         string description;
         string logoUrl;
+        string communication;
     }
 
     // Used for registration, Dao's can use this to register their details
@@ -245,6 +246,14 @@ contract Daopia is ReentrancyGuard, ERC721Holder {
             "Dao not registered"
         );
         daoDetails[msg.sender] = details;
+    }
+
+    function getDaoList() public view returns(DaoFrontend[] memory){
+        DaoFrontend[] memory daoArray = new DaoFrontend[](daoFrontends.length);
+        for (uint i = 0; i < daoFrontends.length; i++) {
+            daoArray[i] = daoFrontends[i];
+        }
+        return daoArray;
     }
 
 

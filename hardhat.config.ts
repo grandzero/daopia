@@ -15,12 +15,12 @@ const config: HardhatUserConfig = {
     },
   },
   networks: {
-    // hardhat: {
-    //   forking: {
-    //     url: "https://polygon-testnet.public.blastapi.io",
-    //   },
-    //   chainId: 80001,
-    // },
+    hardhat: {
+      forking: {
+        url: "https://polygon-testnet.public.blastapi.io",
+      },
+      chainId: 80001,
+    },
     
   calibrationnet: {
       chainId: 314159,
