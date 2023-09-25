@@ -60,6 +60,7 @@ contract Daopia is ReentrancyGuard, ERC721Holder {
         string description;
         string logoUrl;
         string communication;
+        address dao;
     }
 
     // Used for registration, Dao's can use this to register their details
@@ -226,6 +227,8 @@ contract Daopia is ReentrancyGuard, ERC721Holder {
             registrationDetails.vault == msg.sender,
             "Vault can't be different from sender"
         );
+
+        require(frontend.dao == msg.sender, "Frontend dao address must match");
         // Register Dao
         daoDetails[msg.sender] = registrationDetails;
         require(details.num_copies <=3 , "Max 3 copies allowed");

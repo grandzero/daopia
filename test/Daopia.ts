@@ -67,7 +67,8 @@
           name: "daopia",
           logoUrl: "https://daopia.com/logo.png",
           description: "Daopia",
-          communication: "https://bu2.pw"
+          communication: "https://bu2.pw",
+          dao: owner.address
         }
       // Ensure the owner (accounts[0]) is calling the function
       await daopia.registerDao(registrationDetails, dealDetails, frontendDetails);

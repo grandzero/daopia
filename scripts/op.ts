@@ -2,7 +2,7 @@ import { ethers } from "hardhat";
 import { Database } from "@tableland/sdk";
 const wallet = new ethers.Wallet(process.env.PRIVATE_KEY || "", ethers.provider)
 async function main() {
-  const daopia = await ethers.getContractAt("Daopia", "0x3f2E4412ccD854175ae6C02a6d286D279C5042D5");
+  const daopia = await ethers.getContractAt("Daopia", "0x2F3e38b0772E8077Bba1884Ee3f286F72369b35C");
   let tableId = await daopia.proposalsTableId();
  console.log("Table ID is : ", tableId.toString());
   const accounts = await ethers.getSigners();
@@ -24,9 +24,10 @@ async function main() {
 
   const frontendDetails = {
     name: "daopia",
-    logoUrl: "https://daopia.com/logo.png",
+    logoUrl: "https://www.bu2.pw/wp-content/uploads/2023/09/daopialogo-removebg-preview.png",
     description: "Daopia",
-    communication: "https://bu2.pw"
+    communication: "https://bu2.pw",
+    dao: wallet.address
   }
 // Ensure the owner (accounts[0]) is calling the function
  //await daopia.registerDao(registrationDetails, dealDetails, frontendDetails);
