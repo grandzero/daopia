@@ -31,10 +31,10 @@ async function main() {
   }
 // Ensure the owner (accounts[0]) is calling the function
  //await daopia.registerDao(registrationDetails, dealDetails, frontendDetails);
- const daoDetails = await daopia.daoDetails(wallet.address);
-  console.log(daoDetails.vault, wallet.address);
+ //const daoDetails = await daopia.daoDetails(wallet.address);
+  //console.log(daoDetails.vault, wallet.address);
   //await daopia.makeProposalToDao(wallet.address, "Proposal 17");
-
+  const approve = await daopia.approveProposal("cid", 1, 0);
   let num = Number(tableId);
   // const tableName = "daopia"+"_31337_" + num; 
   //await daopia.approveProposal("Proposal1",1);
@@ -44,8 +44,8 @@ async function main() {
 
   const { results } = await db.prepare(`SELECT * FROM ${tableName};`).all();
   console.log(results);
-  let daoList = await daopia.getDaoList();
-  console.log(daoList); 
+  //let daoList = await daopia.getDaoList();
+  //console.log(daoList); 
 }
 
 // We recommend this pattern to be able to use async/await everywhere
