@@ -61,7 +61,7 @@ When a DAO approves a proposal, the status of that proposal is updated on Tablel
 
 ## **Communication**
 
-For any inquiries or further information, please reach out to us through our **[Discord](https://discord.com/)** or via Email.
+For any inquiries or further information, please reach out to us through our **[Discord](https://discord.com/users/GrandZero#9005)** or via **[Email](bayramutkuuzunlar@gmail.com)**.
 
 ## **Contributing**
 
