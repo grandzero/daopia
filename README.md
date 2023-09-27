@@ -1,5 +1,15 @@
 # **Daopia: Decentralized Autonomous Organization Financing Platform**
 
+## Frontend
+
+Repo : **[Frontend Repo](https://github.com/grandzero/daopia-frontend)**
+Visit : **[Daopia](https://daopia.com)**
+
+## Backend
+
+Repo : **[Backend Repo](https://github.com/grandzero/daopia-backend-raas)**
+Url : **[API Url](https://api.daopia.com/api/info)**
+
 ## Contracts
 
 Cid address: **[0x3eE691d2D3630e092F0400A8373dD405Ef971442](https://filfox.info/en/address/0x3eE691d2D3630e092F0400A8373dD405Ef971442)**
