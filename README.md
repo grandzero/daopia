@@ -59,6 +59,42 @@ Any user, whether registered with a DAO or not, can submit a contribution reques
 
 When a DAO approves a proposal, the status of that proposal is updated on Tableland. Subsequently, a function in the DealStatus contract deployed by the Daopia contract is called. The backend captures this call, creates a job for the corresponding CID, and performs replication and renewal processes for that file.
 
+## **Deployment Details**
+
+Before deploying, ensure to add your **`PRIVATE_KEY`** to the **`.env`** file for secure environment variable management.
+
+### **Testing on Mumbai Local Fork**
+
+Tests are executed on a Mumbai local fork to verify the proper functioning of Tableland. To run Tableland local tests, comment out the local Hardhat configuration in the Hardhat config file.
+
+### **Deployment Commands**
+
+- **Deploy**:
+
+```jsx
+npx hardhat run --network calibrationnet scripts/deploy.ts
+```
+
+- **Test**:
+
+```jsx
+npx hardhat test
+```
+
+- **Operations**:
+
+```jsx
+npx hardhat run --network calibrationnet scripts/op.ts
+```
+
+- **Tableland Local Test**:
+
+```jsx
+npx local-tableland
+```
+
+Follow the above commands for deploying, testing, and performing operations on the Daopia platform. Ensure to have the necessary configurations set up and dependencies installed before running these commands.
+
 ## **Communication**
 
 For any inquiries or further information, please reach out to us through our **[Discord](https://discord.com/users/GrandZero#9005)** or via **[Email](bayramutkuuzunlar@gmail.com)**.
